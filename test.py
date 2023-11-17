@@ -8,7 +8,7 @@ import networkx as nx
 
 """
 TODO:
-- Radius neighbor search    (high priority)
+- Radius neighbor search    (high priority) Done
 - Neighbor interaction      (high priority) 
 - Basic functionality (e.g., turn on/off, check status, receive messages, adjust brightness, etc.)
 - Assume energy levels 
