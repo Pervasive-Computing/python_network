@@ -18,9 +18,10 @@ def extract_street_lamps(osm_file):
     for node in root.findall('node'):
         for tag in node.findall('tag'):
             if tag.get('k') == 'highway' and tag.get('v') == 'street_lamp':
+                id = node.get('id')
                 lat = float(node.get('lat'))
                 lon = float(node.get('lon'))
-                street_lamps.append((lat, lon))
+                street_lamps.append((id, lat, lon))
 
     return street_lamps
 

@@ -1,11 +1,26 @@
-import simpy
-from street_lamp_extractor import extract_street_lamps
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-from cartopy.io.img_tiles import OSM
+import argparse
 import math
-import networkx as nx
+import os
+import sys
 import time
+
+import cartopy.crs as ccrs
+import cbor2
+import matplotlib.pyplot as plt
+import networkx as nx
+import simpy
+import zmq
+from cartopy.io.img_tiles import OSM
+
+from street_lamp_extractor import extract_street_lamps
+
+msgCount = 0
+
+try:
+    from rich import pretty, print
+    pretty.install()
+except ImportError or ModuleNotFoundError:
+    pass
 
 """
 TODO:
@@ -26,27 +41,42 @@ class Streetlight:
         self.lat = lat
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
-        self.action = env.process(self.run())
+        self.action = None
 
-    def run(self):
-        while True:
-            # Simulate some activity, like sending messages to neighbors
-            yield self.env.timeout(10)  # Adjust the timeout as needed
-            current_time = time.strftime("%H:%M:%S", time.gmtime(self.env.now))
-            self.send_message(f"Hello from {self.name} at {current_time}")
+    def run(self, subscriber, context):
+        n_messages_received: int = 0
+        try:
+            while True:
+                message = subscriber.recv()
+                self.env.timeout(1)
+                n_messages_received += 1
+                data = cbor2.loads(message)
+                #data is a list of names of streetlights
+                if self.name in data:
+                    self.get_event()
+                
 
-    def send_message(self, message):
-        print(f"{self.env.now}: {self.name} sends message: {message}")
+                #print(f"Received message #{n_messages_received}: {data}")
+                # time.sleep(0.1)
+        except KeyboardInterrupt:
+            print("Interrupted!")
+        finally:
+            subscriber.close()
+            context.term()
+
+    def send_message(self):
+        global msgCount
         for neighbor in self.neighbors:
-            neighbor.receive_message(message)
+            msgCount += 1
+            neighbor.receive_message(self.name)
 
     def receive_message(self, message):
-        print(f"{self.env.now}: {self.name} received message: {message}")
+        #print(f"{self.env.now}: {self.name} received message: {message}")
         self.send_event(message)
 
 
-    def get_event(self, event):
-        self.send_message(self, event)
+    def get_event(self):
+        self.send_message()
 
     def send_event(self, event):
         print("There is event")
@@ -104,7 +134,24 @@ def find_connected_lamps(streetlights, G):
                     streetlight1.add_neighbor(streetlight2)
 
 
-def main():
+
+def main(argc: int, argv: list[str]) -> int:
+
+    # ZeroMQ client connect
+    argv_parser = argparse.ArgumentParser(prog=os.path.basename(__file__).removesuffix(".py"),
+                                         description="ZeroMQ client demo")
+    argv_parser.add_argument("-p", "--port", type=int, default=5555, help="Port number")
+
+    args = argv_parser.parse_args(argv[1:])
+
+    context = zmq.Context()
+
+    print(f"Connecting to server on port {args.port}...")
+    subscriber = context.socket(zmq.SUB)
+    subscriber.connect(f"tcp://localhost:{args.port}")
+    subscriber.setsockopt(zmq.SUBSCRIBE, b"streetlamps")
+    print("Connected!")
+
     osm_file = "Maps/map.osm"
     street_lamps = extract_street_lamps(osm_file)  # Assuming this function is defined elsewhere
 
@@ -113,7 +160,7 @@ def main():
 
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
-    streetlights = [Streetlight(env, f"Streetlight_{i}", lat, lon) for i, (lat, lon) in enumerate(street_lamps[:subset_size])]
+    streetlights = [Streetlight(env,id, lat, lon) for i, (id,lat, lon) in enumerate(street_lamps[:subset_size])]
 
     # Create a network graph
     G = nx.Graph()
@@ -127,6 +174,9 @@ def main():
 
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
+
+    for streetlight in streetlights:
+        streetlight.action = env.process(streetlight.run(subscriber, context))
 
     # Run the simulation (not visualized)
     env.run(until=50)
@@ -142,4 +192,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(len(sys.argv), sys.argv))
