@@ -171,6 +171,7 @@ def main(argc: int, argv: list[str]) -> int:
             n_messages_received += 1
             data = cbor2.loads(message[len("streetlamps"):])
             #data is a list of names of streetlights
+            print(data)
             for streetlight in streetlights:
                 print("Im in for loop")
                 if streetlight.name in data:
