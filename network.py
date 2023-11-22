@@ -42,7 +42,7 @@ class Streetlight:
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
         self.received_event = False
-        self.action = env.process(self.run)
+        #self.action = env.process(self.run)
         
 
     def run(self):
