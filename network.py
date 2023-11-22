@@ -150,7 +150,7 @@ def main(argc: int, argv: list[str]) -> int:
     
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
-    streetlights = [Streetlight(env, ids, lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
+    streetlights = [Streetlight(env, int(ids), lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
 
     print(len(streetlights))
     
