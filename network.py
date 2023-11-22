@@ -41,28 +41,16 @@ class Streetlight:
         self.lat = lat
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
-        self.action = None
+        self.received_event = False
+        self.action = env.process(self.run())
+        
 
-    def run(self, subscriber, context):
-        n_messages_received: int = 0
-        try:
-            while True:
-                message = subscriber.recv()
+    def run(self):
+        while True:
+            if self.received_event:
+                self.get_event()
+                self.received_event = False
                 self.env.timeout(1)
-                n_messages_received += 1
-                data = cbor2.loads(message)
-                #data is a list of names of streetlights
-                if self.name in data:
-                    self.get_event()
-                
-
-                #print(f"Received message #{n_messages_received}: {data}")
-                # time.sleep(0.1)
-        except KeyboardInterrupt:
-            print("Interrupted!")
-        finally:
-            subscriber.close()
-            context.term()
 
     def send_message(self):
         global msgCount
@@ -160,7 +148,7 @@ def main(argc: int, argv: list[str]) -> int:
 
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
-    streetlights = [Streetlight(env,id, lat, lon) for i, (id,lat, lon) in enumerate(street_lamps[:subset_size])]
+    streetlights = [Streetlight(env, ids, lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
 
     # Create a network graph
     G = nx.Graph()
@@ -175,11 +163,26 @@ def main(argc: int, argv: list[str]) -> int:
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
 
-    for streetlight in streetlights:
-        streetlight.action = env.process(streetlight.run(subscriber, context))
+    n_messages_received: int = 0
+    try:
+        while True:
+            message = subscriber.recv()
+            n_messages_received += 1
+            data = cbor2.loads(message[len("streetlamps"):])
+            #data is a list of names of streetlights
+            for streetlight in streetlights:
+                if streetlight.name in data:
+                    streetlight.received_event = True
+                env.run(until=env.now + 1)
 
-    # Run the simulation (not visualized)
-    env.run(until=50)
+            #print(f"Received message #{n_messages_received}: {data}")
+            # time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("Interrupted!")
+    finally:
+        subscriber.close()
+        context.term()
+
     
     # Draw the network
     pos = nx.get_node_attributes(G, 'pos')
