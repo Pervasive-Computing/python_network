@@ -164,6 +164,7 @@ def main(argc: int, argv: list[str]) -> int:
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
 
+    print("Starting simulation...")
     n_messages_received: int = 0
     try:
         while True:
