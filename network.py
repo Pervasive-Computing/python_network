@@ -143,24 +143,29 @@ def main(argc: int, argv: list[str]) -> int:
 
     osm_file = "Maps/map.osm"
     street_lamps = extract_street_lamps(osm_file)  # Assuming this function is defined elsewhere
-
+    
+    print("1")
     # Create the SimPy environment
     env = simpy.Environment()
-
+    print("2")
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
     streetlights = [Streetlight(env, ids, lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
 
+    print("3")
     # Create a network graph
     G = nx.Graph()
-
+    
+    print("4")
     # Add nodes and edges to the graph
     for i, streetlight in enumerate(streetlights):
         G.add_node(streetlight.name, pos=(streetlight.lat, streetlight.lon))
 
+    print("5")
     # Find connected lamps
     find_connected_lamps(streetlights, G)
 
+    print("6")
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
 
