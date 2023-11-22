@@ -49,6 +49,7 @@ class Streetlight:
         while True:
             if self.received_event:
                 self.get_event()
+                print(self.name)
                 self.received_event = False
                 self.env.timeout(1)
 
