@@ -173,6 +173,7 @@ def main(argc: int, argv: list[str]) -> int:
             #data is a list of names of streetlights
             for streetlight in streetlights:
                 if streetlight.name in data:
+                    print("Im trying to get event")
                     streetlight.get_event()
                 
 
