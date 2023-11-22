@@ -172,6 +172,7 @@ def main(argc: int, argv: list[str]) -> int:
             data = cbor2.loads(message[len("streetlamps"):])
             #data is a list of names of streetlights
             for streetlight in streetlights:
+                print("Im in for loop")
                 if streetlight.name in data:
                     print("Im trying to get event")
                     streetlight.get_event()
