@@ -173,8 +173,8 @@ def main(argc: int, argv: list[str]) -> int:
             #data is a list of names of streetlights
             for streetlight in streetlights:
                 if streetlight.name in data:
-                    streetlight.received_event = True
-                env.run(until=env.now + 1)
+                    streetlight.get_event()
+                
 
             #print(f"Received message #{n_messages_received}: {data}")
             # time.sleep(0.1)
