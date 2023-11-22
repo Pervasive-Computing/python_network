@@ -250,6 +250,27 @@ package:
   size: 1933115
   timestamp: 1698172961288
 - platform: linux-64
+  name: cbor2
+  version: 5.5.1
+  category: main
+  manager: conda
+  dependencies:
+  - libgcc-ng >=12
+  - python >=3.12,<3.13.0a0
+  - python_abi 3.12.* *_cp312
+  url: https://conda.anaconda.org/conda-forge/linux-64/cbor2-5.5.1-py312h98912ed_0.conda
+  hash:
+    md5: 38e7c5edb218c92de8c2c62df7f84bd9
+    sha256: 36633e90deb68a666ab96b2410942e88cd7a9d7f8f5c6ff4600dd436758998f1
+  build: py312h98912ed_0
+  arch: x86_64
+  subdir: linux-64
+  build_number: 0
+  license: MIT
+  license_family: MIT
+  size: 92669
+  timestamp: 1698964343178
+- platform: linux-64
   name: certifi
   version: 2023.11.17
   category: main
@@ -1651,6 +1672,24 @@ package:
   size: 354372
   timestamp: 1695747735668
 - platform: linux-64
+  name: libsodium
+  version: 1.0.18
+  category: main
+  manager: conda
+  dependencies:
+  - libgcc-ng >=7.5.0
+  url: https://conda.anaconda.org/conda-forge/linux-64/libsodium-1.0.18-h36c2ea0_1.tar.bz2
+  hash:
+    md5: c3788462a6fbddafdb413a9f9053e58d
+    sha256: 53da0c8b79659df7b53eebdb80783503ce72fb4b10ed6e9e05cc0e9e4207a130
+  build: h36c2ea0_1
+  arch: x86_64
+  subdir: linux-64
+  build_number: 1
+  license: ISC
+  size: 374999
+  timestamp: 1605135674116
+- platform: linux-64
   name: libsqlite
   version: 3.44.0
   category: main
@@ -2596,6 +2635,29 @@ package:
   size: 6385
   timestamp: 1695147396604
 - platform: linux-64
+  name: pyzmq
+  version: 25.1.1
+  category: main
+  manager: conda
+  dependencies:
+  - libgcc-ng >=12
+  - libsodium >=1.0.18,<1.0.19.0a0
+  - libstdcxx-ng >=12
+  - python >=3.12,<3.13.0a0
+  - python_abi 3.12.* *_cp312
+  - zeromq >=4.3.5,<4.4.0a0
+  url: https://conda.anaconda.org/conda-forge/linux-64/pyzmq-25.1.1-py312h886d080_2.conda
+  hash:
+    md5: b07238948c49747387d699dd5dd596df
+    sha256: 9e64958131e6f2d2d3739604279befba4b1a25ecde6288f34a172ee1d4742c5b
+  build: py312h886d080_2
+  arch: x86_64
+  subdir: linux-64
+  build_number: 2
+  license: BSD-3-Clause AND LGPL-3.0-or-later
+  size: 528805
+  timestamp: 1698062675674
+- platform: linux-64
   name: qt-main
   version: 5.15.8
   category: main
@@ -3266,6 +3328,27 @@ package:
   license: LGPL-2.1 and GPL-2.0
   size: 418368
   timestamp: 1660346797927
+- platform: linux-64
+  name: zeromq
+  version: 4.3.5
+  category: main
+  manager: conda
+  dependencies:
+  - libgcc-ng >=12
+  - libsodium >=1.0.18,<1.0.19.0a0
+  - libstdcxx-ng >=12
+  url: https://conda.anaconda.org/conda-forge/linux-64/zeromq-4.3.5-h59595ed_0.conda
+  hash:
+    md5: 8851084c192dbc56215ac4e3c9aa30fa
+    sha256: 53bf2a18224406e9806adb3b270a2c8a028aca0c89bd40114a85d6446f5c98d1
+  build: h59595ed_0
+  arch: x86_64
+  subdir: linux-64
+  build_number: 0
+  license: MPL-2.0
+  license_family: MOZILLA
+  size: 343455
+  timestamp: 1697056638125
 - platform: linux-64
   name: zlib
   version: 1.2.13
