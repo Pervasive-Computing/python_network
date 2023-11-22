@@ -5,11 +5,12 @@ import cartopy.crs as ccrs
 from cartopy.io.img_tiles import OSM
 import math
 import networkx as nx
+import time
 
 """
 TODO:
 - Radius neighbor search    (high priority) Done
-- Neighbor interaction      (high priority) 
+- Neighbor interaction      (high priority) Done
 - Basic functionality (e.g., turn on/off, check status, receive messages, adjust brightness, etc.)
 - Assume energy levels 
 - Real-time delay
@@ -29,9 +30,26 @@ class Streetlight:
 
     def run(self):
         while True:
-            # Simulate some activity, like checking for neighbors or status updates
+            # Simulate some activity, like sending messages to neighbors
             yield self.env.timeout(10)  # Adjust the timeout as needed
-            self.check_neighbors()
+            current_time = time.strftime("%H:%M:%S", time.gmtime(self.env.now))
+            self.send_message(f"Hello from {self.name} at {current_time}")
+
+    def send_message(self, message):
+        print(f"{self.env.now}: {self.name} sends message: {message}")
+        for neighbor in self.neighbors:
+            neighbor.receive_message(message)
+
+    def receive_message(self, message):
+        print(f"{self.env.now}: {self.name} received message: {message}")
+        self.send_event(message)
+
+
+    def get_event(self, event):
+        self.send_message(self, event)
+
+    def send_event(self, event):
+        print("There is event")
 
     def check_neighbors(self):
         # Example function to simulate interaction with neighbors
@@ -40,6 +58,7 @@ class Streetlight:
 
     def add_neighbor(self, neighbor):
         self.neighbors.append(neighbor)
+                              
                               
 def plot_street_lamps_map(street_lamps):
     # Create an OpenStreetMap instance
@@ -82,8 +101,7 @@ def find_connected_lamps(streetlights, G):
                 if distance <= COMMUNICATION_RANGE:
                     # Use the names of the streetlights to create edges
                     G.add_edge(streetlight1.name, streetlight2.name)
-
-
+                    streetlight1.add_neighbor(streetlight2)
 
 
 def main():
@@ -94,7 +112,7 @@ def main():
     env = simpy.Environment()
 
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
-    subset_size = 906  # Adjust this number as needed
+    subset_size = 25  # Adjust this number as needed
     streetlights = [Streetlight(env, f"Streetlight_{i}", lat, lon) for i, (lat, lon) in enumerate(street_lamps[:subset_size])]
 
     # Create a network graph
