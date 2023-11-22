@@ -1,0 +1,16 @@
+[project]
+name = "python_network"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["kpbaks <kristoffer.pbs@tuta.io>"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tasks]
+
+[dependencies]
+cartopy = "0.22.0.*"
+matplotlib = "3.8.2.*"
+python = "3.12.0.*"
+networkx = "3.2.1.*"
+simpy = "4.1.1.*"
