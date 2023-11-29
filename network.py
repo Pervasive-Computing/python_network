@@ -69,6 +69,7 @@ class Streetlight:
 
 
     def get_event(self):
+        print("Hello")
         self.send_message()
 
     def send_event(self, event):
@@ -185,7 +186,6 @@ def main(argc: int, argv: list[str]):
             
             for streetlight in streetlights:
                 if streetlight.name in data:
-                    print("There is event")
                     streetlight.get_event()
                 
 
