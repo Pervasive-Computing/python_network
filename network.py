@@ -124,7 +124,7 @@ def find_connected_lamps(streetlights, G):
 
 
 
-def main(argc: int, argv: list[str]) -> int:
+def main(argc: int, argv: list[str]):
 
     # ZeroMQ client connect
     argv_parser = argparse.ArgumentParser(prog=os.path.basename(__file__).removesuffix(".py"),
@@ -183,7 +183,6 @@ def main(argc: int, argv: list[str]) -> int:
                 print(f"{streetlight.name = }")
                 print(f"{data = }")
                 if streetlight.name in data:
-                    print("Im trying to get event")
                     streetlight.get_event()
                 
 
