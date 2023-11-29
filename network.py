@@ -1,6 +1,7 @@
 import argparse
 import math
 import os
+import re
 import sys
 import time
 
@@ -14,7 +15,8 @@ from cartopy.io.img_tiles import OSM
 
 from street_lamp_extractor import extract_street_lamps
 
-msgCount = 0
+sendMsgCount = 0
+receiveMsgCount = 0
 
 try:
     from rich import pretty, print
@@ -54,12 +56,14 @@ class Streetlight:
                 self.env.timeout(1)
 
     def send_message(self):
-        global msgCount
+        global sendMsgCount
         for neighbor in self.neighbors:
-            msgCount += 1
+            sendMsgCount += 1
             neighbor.receive_message(self.name)
 
     def receive_message(self, message):
+        global receiveMsgCount
+        receiveMsgCount += 1
         #print(f"{self.env.now}: {self.name} received message: {message}")
         self.send_event(message)
 
