@@ -69,10 +69,11 @@ class Streetlight:
 
 
     def get_event(self):
-        print("Hello")
         self.send_message()
 
     def send_event(self, event):
+    
+        
         print("There is event")
 
     def check_neighbors(self):
@@ -138,8 +139,6 @@ def main(argc: int, argv: list[str]):
 
     args = argv_parser.parse_args(argv[1:])
 
-    context = zmq.Context()
-
     print(f"Connecting to server on port {args.port}...")
     subscriber = context.socket(zmq.SUB)
     subscriber.connect(f"tcp://localhost:{args.port}")
@@ -156,8 +155,6 @@ def main(argc: int, argv: list[str]):
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
     streetlights = [Streetlight(env, int(ids), lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
-
-    print(len(streetlights))
     
     # Create a network graph
     G = nx.Graph()
@@ -207,6 +204,10 @@ def main(argc: int, argv: list[str]):
 
     plt.show()
 
+    global sendMsgCount
+    global receiveMsgCount
+
+    print(sendMsgCount, receiveMsgCount)
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
