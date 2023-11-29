@@ -184,9 +184,8 @@ def main(argc: int, argv: list[str]):
             #data is a list of names of streetlights
             
             for streetlight in streetlights:
-                print(f"{streetlight.name = }")
-                print(f"{data = }")
                 if streetlight.name in data:
+                    print("There is event")
                     streetlight.get_event()
                 
 
