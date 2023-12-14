@@ -228,12 +228,14 @@ def main(argc: int, argv: list[str]):
             # print("Message = ", message)
         
             n_messages_received += 1
-            data = cbor2.loads(message[len("streetlamps"):])
+            data = cbor2.loads(message[len("streetlamps"):]) 
             # time = cbor2.loads(message[len("streetlamps"):])
             # print(f"Received message #{n_messages_received}: {data}")
             logger.info(f"Received message #{n_messages_received}: {data}")
             # data is a list of names of streetlights 
-            changes = dict()
+            dictionary = dict()
+            dictionary['timestamp'] = data['timestamp']
+            dictionary['changes'] = dict()
             for streetlight in streetlights:
                 event = {
                         "date": datetime.datetime.fromtimestamp(data['timestamp']),
@@ -248,10 +250,11 @@ def main(argc: int, argv: list[str]):
                 
                 streetlight.get_event(event)
 
-                changes[streetlight.name] = streetlight.get_level()
-            changes['timestamp'] = data['timestamp']
-            print('changes = ', changes)
-            data = cbor2.dumps(changes)
+                dictionary['changes'][streetlight.name] = streetlight.get_level()
+            # changes['timestamp'] = 
+            # logger.info('changes = ', dictionary)
+            print('changes = ', dictionary)
+            data = cbor2.dumps(dictionary)
             publisher.send(bytes(pub_top, encoding='utf-8') + data)
 
 
