@@ -1,0 +1,6 @@
+[publisher]
+port = 12333
+
+
+[subscriber]
+port = 12000

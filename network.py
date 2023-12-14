@@ -4,14 +4,20 @@ import os
 import re
 import sys
 import time
-
 import cartopy.crs as ccrs
 import cbor2
 import matplotlib.pyplot as plt
 import networkx as nx
 import simpy
 import zmq
+import datetime
+from pathlib import Path
+from datetime import time as t
 from cartopy.io.img_tiles import OSM
+from controller import lightController
+from loguru import logger
+import tomllib
+
 
 from street_lamp_extractor import extract_street_lamps
 
@@ -44,37 +50,59 @@ class Streetlight:
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
         self.received_event = False
-        #self.action = env.process(self.run)
+        self.controller = lightController()
+        self.time_count = 60
+        self.change_state = False
+        self.level = 0
         
 
     def run(self):
         while True:
             if self.received_event:
                 self.get_event()
-                print(self.name)
                 self.received_event = False
                 self.env.timeout(1)
 
-    def send_message(self):
-        global sendMsgCount
-        for neighbor in self.neighbors:
-            sendMsgCount += 1
-            neighbor.receive_message(self.name)
 
-    def receive_message(self, message):
+
+    def send_message(self, event):
+        # global sendMsgCount
+        for neighbor in self.neighbors:
+            # sendMsgCount += 1
+            neighbor.receive_message(event)
+
+
+
+    def receive_message(self, event):
+        self.time_count = 60
+
         global receiveMsgCount
         receiveMsgCount += 1
-        #print(f"{self.env.now}: {self.name} received message: {message}")
-        self.send_event(message)
+       
+        self.send_event(event)
 
 
-    def get_event(self):
-        self.send_message()
+    def get_event(self, event):
+        self.send_message(event)
+
 
     def send_event(self, event):
-    
+        level = self.controller.control(event)
+        self.level = level
+        self.change_state = True
+
+        print(event)
+
+
+    def level_changed(self):
+        if self.change_state:
+            self.change_state = False
+            return self.level  
+        else:
+
+            return 0
         
-        print("There is event")
+
 
     def check_neighbors(self):
         # Example function to simulate interaction with neighbors
@@ -103,6 +131,8 @@ def plot_street_lamps_map(street_lamps):
         # Draw a circle for the communication range
         circle = plt.Circle((lon, lat), (COMMUNICATION_RANGE)*1000/111139, color='blue', alpha=0.3, transform=ccrs.PlateCarree())
         ax.add_artist(circle)
+    
+    
     
 # Function to calculate distance between two points
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -133,17 +163,39 @@ def find_connected_lamps(streetlights, G):
 def main(argc: int, argv: list[str]):
 
     # ZeroMQ client connect
-    argv_parser = argparse.ArgumentParser(prog=os.path.basename(__file__).removesuffix(".py"),
-                                         description="ZeroMQ client demo")
-    argv_parser.add_argument("-p", "--port", type=int, default=5555, help="Port number")
-
-    args = argv_parser.parse_args(argv[1:])
-
-    print(f"Connecting to server on port {args.port}...")
+    context = zmq.Context()
+    publisher  = context.socket(zmq.PUB)
     subscriber = context.socket(zmq.SUB)
-    subscriber.connect(f"tcp://localhost:{args.port}")
+
+    # else:
+    configuration_path = Path("config.toml")
+    if not configuration_path.exists():
+        print(f"Cannot find `{configuration_path}`!")
+        return 1
+    with open(configuration_path, "rb") as file:
+        try:
+            configuration = tomllib.load(file)
+            
+        except tomllib.TOMLDecodeError as e:
+            print(f"Cannot decode `{configuration_path}`: {e}", file=sys.stderr)
+            return 1
+
+
+    
+    pub_port = configuration["publisher"]["port"]
+    publisher.bind(f"tcp://*:{pub_port}")
+    pub_top = "light_level"
+
+
+    sub_port = configuration["subscriber"]["port"]
+    
+    print("Sub port = ", sub_port, " and pub port = ", pub_port)
+    subscriber.connect(f"tcp://localhost:{12000}")
     subscriber.setsockopt(zmq.SUBSCRIBE, b"streetlamps")
+
+
     print("Connected!")
+    
 
     osm_file = "Maps/map.osm"
     street_lamps = extract_street_lamps(osm_file)  # Assuming this function is defined elsewhere
@@ -151,11 +203,14 @@ def main(argc: int, argv: list[str]):
 
     # Create the SimPy environment
     env = simpy.Environment()
+    print(env.now)
+    # print(env.datetime)
+    
     
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
     streetlights = [Streetlight(env, int(ids), lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
-    
+    # print("Streetlights = ", streetlights)
     # Create a network graph
     G = nx.Graph()
     
@@ -176,22 +231,42 @@ def main(argc: int, argv: list[str]):
     n_messages_received: int = 0
     try:
         while True:
-            message = subscriber.recv()
+            message = subscriber.recv() #We only recieve messages that observed movement
+            # message = {'streetlamps': [11046617406, 2, 3]}
+            # data = message['streetlamps']
+            # print("Message = ", message)
+        
             n_messages_received += 1
             data = cbor2.loads(message[len("streetlamps"):])
-            #data is a list of names of streetlights
-            
+            # print(f"Received message #{n_messages_received}: {data}")
+            logger.info(f"Received message #{n_messages_received}: {data}")
+            # data is a list of names of streetlights 
+            changes = dict()
             for streetlight in streetlights:
+                # print("HERE:", streetlight.name)
                 if streetlight.name in data:
-                    streetlight.get_event()
-                
+                    event = {
+                        "date": datetime.datetime(2023, 11, 3, 1, 20), 
+                        "sunset_time": t(19, 30),
+                        "sunrise_time": t(6, 30),
+                        "lux_number": 245.5, 
+                        "current_level": 1.0,
+                        "sensor_input": True, 
+                        "season": "Summer" }
+                    
+                    streetlight.get_event(event)
+                else:
+                    pass
+                changes[streetlight.name] = streetlight.level_changed()
+            data = cbor2.dumps(changes)
+            publisher.send(bytes(pub_top, encoding='utf-8') + data)
 
-            #print(f"Received message #{n_messages_received}: {data}")
-            # time.sleep(0.1)
+
     except KeyboardInterrupt:
         print("Interrupted!")
     finally:
         subscriber.close()
+
         context.term()
 
     
