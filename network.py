@@ -1,9 +1,5 @@
-import argparse
 import math
-import os
-import re
 import sys
-import time
 import cartopy.crs as ccrs
 import cbor2
 import matplotlib.pyplot as plt
@@ -43,26 +39,16 @@ TODO:
 """
 
 class Streetlight:
-    def __init__(self, env, name, lat, lon):
+    def __init__(self, env, name, lat, lon, timeout_time=10):
         self.env = env
         self.name = name
         self.lat = lat
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
         self.received_event = False
-        self.controller = lightController()
+        self.controller = lightController(timeout_time)
         self.last_change = 0
-        self.change_state = False
         self.level = 0.0
-        
-
-    def run(self):
-        while True:
-            if self.received_event:
-                self.get_event()
-                self.received_event = False
-                self.env.timeout(1)
-
 
 
     def send_message(self, event):
@@ -86,6 +72,7 @@ class Streetlight:
         
         #Handle the event
         self.handle_event(event)
+        
 
 
 
@@ -101,15 +88,13 @@ class Streetlight:
         """
         event['current_level'] = self.level
         level, time_change = self.controller.control(event, self.last_change)
+        
         self.last_change = time_change
         self.level = level
-
 
     def get_level(self):
         return self.level
         
-
-
     def check_neighbors(self):
         # Example function to simulate interaction with neighbors
         for neighbor in self.neighbors:
@@ -196,7 +181,7 @@ def main(argc: int, argv: list[str]):
     sub_port = configuration["subscriber"]["port"]
     
     print("Sub port = ", sub_port, " and pub port = ", pub_port)
-    subscriber.connect(f"tcp://localhost:{12000}")
+    subscriber.connect(f"tcp://localhost:{sub_port}")
     subscriber.setsockopt(zmq.SUBSCRIBE, b"streetlamps")
 
 
@@ -215,7 +200,7 @@ def main(argc: int, argv: list[str]):
     
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
-    streetlights = [Streetlight(env, int(ids), lat, lon) for i, (ids, lat, lon) in enumerate(street_lamps)]
+    streetlights = [Streetlight(env, int(ids), lat, lon, configuration["setup_values"]["timeout_time"]) for i, (ids, lat, lon) in enumerate(street_lamps)]
     # print("Streetlights = ", streetlights)
     # Create a network graph
     G = nx.Graph()
@@ -244,19 +229,19 @@ def main(argc: int, argv: list[str]):
         
             n_messages_received += 1
             data = cbor2.loads(message[len("streetlamps"):])
+            # time = cbor2.loads(message[len("streetlamps"):])
             # print(f"Received message #{n_messages_received}: {data}")
             logger.info(f"Received message #{n_messages_received}: {data}")
             # data is a list of names of streetlights 
             changes = dict()
             for streetlight in streetlights:
-                # print("HERE:", streetlight.name)
                 event = {
-                        "date": datetime.datetime(2023, 11, 3, 1, 20), 
+                        "date": datetime.datetime.fromtimestamp(data['timestamp']),
                         "sunset_time": t(19, 30),
                         "sunrise_time": t(6, 30),
                         "lux_number": 245.5, 
                         "season": "Summer" }
-                if streetlight.name in data:
+                if streetlight.name in data['streetlamps']:
                     event["sensor_input"] = True
                 else:
                     event["sensor_input"] = False
@@ -264,7 +249,7 @@ def main(argc: int, argv: list[str]):
                 streetlight.get_event(event)
 
                 changes[streetlight.name] = streetlight.get_level()
-            
+            changes['timestamp'] = data['timestamp']
             print('changes = ', changes)
             data = cbor2.dumps(changes)
             publisher.send(bytes(pub_top, encoding='utf-8') + data)

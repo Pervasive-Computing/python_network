@@ -4,3 +4,7 @@ port = 12333
 
 [subscriber]
 port = 12000
+
+
+[setup_values]
+timeout_time = 10
