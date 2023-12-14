@@ -33,6 +33,7 @@ class lightController():
                             
         for key, expected_item in expected_format.items():
             if key not in json_inp:
+                print(json_inp)
                 raise ValueError("Key not in expected format: " + key)
             if not isinstance(json_inp[key], expected_item):
                 raise TypeError("Value not in expected format: " + key)
@@ -44,41 +45,33 @@ class lightController():
         current_level = json_inp['current_level']
         sensor_input = json_inp['sensor_input']
 
-        return date, sunset_time, sunrise_time, light_level, current_level, sensor_input
-    
+        return date, sunset_time, sunrise_time, light_level, current_level, sensor_input    
 
-    def make_light_decision(self, json_obj):
+    def control(self, json_obj, last_change):
+        # if(last_change > 0)
+        # res = self.make_light_decision(json_obj)
+        # return res
+        
         try: 
             date, sunset_time, sunrise_time, light_level, current_level, sensor_input = self.parse_json(json_obj)
         except ValueError as e:
             print("Value error: ", e)
-            return -1
+            return 0.0, 0
         except TypeError as e:
             print("Typerror: ", e)
-            return -1
+            return 0.0, 0
 
-        # print("Date = ", date, ", light level = " , light_level, ". Current light level = ", current_level)
-        # print("Sunset time = ", sunset_time, ", sunrise time = ", sunrise_time)
+        if(last_change > 0 and current_level > 0.5):
+            return current_level, (last_change - 1)
+
         
         if(not is_time_between(date.time(), sunset_time, sunrise_time)):
             print("Time is not bewteen sunset and sunrise. No light required")
-            return 0.0
+            return 0.0, 0
         
-        if(sensor_input == True):
-
-            #current light level logic?
-
-            return 1.0
+        if sensor_input:
+            return 1.0, 60
         
-        return 0.5
+
+        return 0.5, 0
     
-
-
-    def control(self, json_obj):
-        res = self.make_light_decision(json_obj)
-        return res
-        # if(res > 0.5):
-        #    print("Over 0.5, notify neighbour lights. Level is set to: ", res)
-        #     # notify_neighbour_lights()
-        # else:
-        #     print("Light level is now set to: ", res)

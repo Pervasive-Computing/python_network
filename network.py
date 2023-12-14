@@ -51,9 +51,9 @@ class Streetlight:
         self.neighbors = []  # List to hold neighboring streetlights
         self.received_event = False
         self.controller = lightController()
-        self.time_count = 60
+        self.last_change = 0
         self.change_state = False
-        self.level = 0
+        self.level = 0.0
         
 
     def run(self):
@@ -70,37 +70,43 @@ class Streetlight:
         for neighbor in self.neighbors:
             # sendMsgCount += 1
             neighbor.receive_message(event)
-
-
+         
 
     def receive_message(self, event):
-        self.time_count = 60
-
         global receiveMsgCount
         receiveMsgCount += 1
        
-        self.send_event(event)
+        self.handle_event(event)
 
 
     def get_event(self, event):
-        self.send_message(event)
+        #If there is movement, notify neighbours
+        if event["sensor_input"]:
+            self.send_message(event)
+        
+        #Handle the event
+        self.handle_event(event)
 
 
-    def send_event(self, event):
-        level = self.controller.control(event)
+
+    def handle_event(self, event):
+        """
+        event = {
+                        "date": datetime.datetime(2023, 11, 3, 1, 20), 
+                        "sunset_time": t(19, 30),
+                        "sunrise_time": t(6, 30),
+                        "lux_number": 245.5, 
+                        "sensor_input": True, 
+                        "season": "Summer" }
+        """
+        event['current_level'] = self.level
+        level, time_change = self.controller.control(event, self.last_change)
+        self.last_change = time_change
         self.level = level
-        self.change_state = True
-
-        print(event)
 
 
-    def level_changed(self):
-        if self.change_state:
-            self.change_state = False
-            return self.level  
-        else:
-
-            return 0
+    def get_level(self):
+        return self.level
         
 
 
@@ -244,20 +250,22 @@ def main(argc: int, argv: list[str]):
             changes = dict()
             for streetlight in streetlights:
                 # print("HERE:", streetlight.name)
-                if streetlight.name in data:
-                    event = {
+                event = {
                         "date": datetime.datetime(2023, 11, 3, 1, 20), 
                         "sunset_time": t(19, 30),
                         "sunrise_time": t(6, 30),
                         "lux_number": 245.5, 
-                        "current_level": 1.0,
-                        "sensor_input": True, 
                         "season": "Summer" }
-                    
-                    streetlight.get_event(event)
+                if streetlight.name in data:
+                    event["sensor_input"] = True
                 else:
-                    pass
-                changes[streetlight.name] = streetlight.level_changed()
+                    event["sensor_input"] = False
+                
+                streetlight.get_event(event)
+
+                changes[streetlight.name] = streetlight.get_level()
+            
+            print('changes = ', changes)
             data = cbor2.dumps(changes)
             publisher.send(bytes(pub_top, encoding='utf-8') + data)
 
