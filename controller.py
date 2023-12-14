@@ -60,6 +60,8 @@ class lightController():
             return 0.0, 0
 
         if(last_change > 0 and current_level > 0.5):
+            if sensor_input:
+                return 1.0, self.timeout_time
             return current_level, (last_change - 1)
 
 

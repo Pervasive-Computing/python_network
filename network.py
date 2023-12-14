@@ -151,7 +151,7 @@ def find_connected_lamps(streetlights, G):
 
 
 
-def main(argc: int, argv: list[str]):
+def main(argc: int, argv: list[str]) -> int:
 
     # ZeroMQ client connect
     context = zmq.Context()
@@ -161,14 +161,14 @@ def main(argc: int, argv: list[str]):
     # else:
     configuration_path = Path("config.toml")
     if not configuration_path.exists():
-        print(f"Cannot find `{configuration_path}`!")
+        logger.error(f"Cannot find `{configuration_path}`!")
         return 1
     with open(configuration_path, "rb") as file:
         try:
             configuration = tomllib.load(file)
             
         except tomllib.TOMLDecodeError as e:
-            print(f"Cannot decode `{configuration_path}`: {e}", file=sys.stderr)
+            logger.error(f"Cannot decode `{configuration_path}`: {e}", file=sys.stderr)
             return 1
 
 
@@ -180,12 +180,12 @@ def main(argc: int, argv: list[str]):
 
     sub_port = configuration["subscriber"]["port"]
     
-    print("Sub port = ", sub_port, " and pub port = ", pub_port)
+    logger.info("Sub port = ", sub_port, " and pub port = ", pub_port)
     subscriber.connect(f"tcp://localhost:{sub_port}")
     subscriber.setsockopt(zmq.SUBSCRIBE, b"streetlamps")
 
 
-    print("Connected!")
+    logger.info("Connected!")
     
 
     osm_file = "Maps/map.osm"
@@ -194,7 +194,7 @@ def main(argc: int, argv: list[str]):
 
     # Create the SimPy environment
     env = simpy.Environment()
-    print(env.now)
+    print(f"{env.now = }")
     # print(env.datetime)
     
     
@@ -218,7 +218,7 @@ def main(argc: int, argv: list[str]):
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
 
-    print("Starting simulation...")
+    logger.info("Starting simulation...")
     n_messages_received: int = 0
     try:
         while True:
@@ -229,13 +229,10 @@ def main(argc: int, argv: list[str]):
         
             n_messages_received += 1
             data = cbor2.loads(message[len("streetlamps"):]) 
-            # time = cbor2.loads(message[len("streetlamps"):])
-            # print(f"Received message #{n_messages_received}: {data}")
+
             logger.info(f"Received message #{n_messages_received}: {data}")
             # data is a list of names of streetlights 
-            dictionary = dict()
-            dictionary['timestamp'] = data['timestamp']
-            dictionary['changes'] = dict()
+            dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
             for streetlight in streetlights:
                 event = {
                         "date": datetime.datetime.fromtimestamp(data['timestamp']),
@@ -251,9 +248,8 @@ def main(argc: int, argv: list[str]):
                 streetlight.get_event(event)
 
                 dictionary['changes'][streetlight.name] = streetlight.get_level()
-            # changes['timestamp'] = 
-            # logger.info('changes = ', dictionary)
-            print('changes = ', dictionary)
+
+            # print('changes = ', dictionary)
             data = cbor2.dumps(dictionary)
             publisher.send(bytes(pub_top, encoding='utf-8') + data)
 
@@ -278,7 +274,7 @@ def main(argc: int, argv: list[str]):
     global sendMsgCount
     global receiveMsgCount
 
-    print(sendMsgCount, receiveMsgCount)
+    logger.info(f"{sendMsgCount = }, {receiveMsgCount = }")
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
