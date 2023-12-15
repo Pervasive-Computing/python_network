@@ -12,15 +12,15 @@ def is_time_between(target, time_start, time_end):
         return target >= time_start or target <= time_end
     else:
         # If the interval doesn't wrap around midnight, it's a simple comparison
-        print("Checkpoint3")
         return time_start <= target <= time_end
 
 
 
 class lightController():
-    def __init__(self, timeout_time):
+    def __init__(self, timeout_time, early_ev_logic):
         self.timeout_time = timeout_time
         self.logic_time = t(22,00)
+        self.early_evening_logic = early_ev_logic
 
     def parse_json(self, json_inp):
         expected_format = {'date': datetime.datetime, 
@@ -46,10 +46,6 @@ class lightController():
         return date, sunset_time, sunrise_time, light_level, current_level, sensor_input    
 
     def control(self, json_obj, last_change):
-        # if(last_change > 0)
-        # res = self.make_light_decision(json_obj)
-        # return res
-        early_evening_logic = True
 
         try: 
             date, sunset_time, sunrise_time, light_level, current_level, sensor_input = self.parse_json(json_obj)
@@ -67,15 +63,22 @@ class lightController():
 
 
         if(not is_time_between(date.time(), sunset_time, sunrise_time)):
+<<<<<<< Updated upstream
             logger.warning("Time is not bewteen sunset and sunrise. No light required")
+=======
+>>>>>>> Stashed changes
             # print("Time is not bewteen sunset and sunrise. No light required")
             return 0.0, 0
         
         #Early time logic
-        if(self.logic_time > sunset_time):
-            early_evening_logic = False
-        elif is_time_between(date.time(), sunset_time, self.logic_time):
-            early_evening_logic = True
+        early_evening_logic = True
+        if self.early_evening_logic:
+            if(self.logic_time <= sunset_time):
+                early_evening_logic = False
+            elif is_time_between(date.time(), sunset_time, self.logic_time):
+                early_evening_logic = True
+            else:
+                early_evening_logic = False
         else:
             early_evening_logic = False
 

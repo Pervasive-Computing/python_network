@@ -7,10 +7,13 @@ import networkx as nx
 import simpy
 import zmq
 import datetime
+import csv
+
 from pathlib import Path
 from datetime import time as t
 from cartopy.io.img_tiles import OSM
 from controller import lightController
+from calculate_cost import calc_cost
 from loguru import logger
 import tomllib
 
@@ -47,15 +50,15 @@ class Streetlight:
         self.lon = lon
         self.neighbors = []  # List to hold neighboring streetlights
         self.received_event = False
-        self.controller = lightController(timeout_time)
+        self.controller = lightController(timeout_time, False)
         self.last_change = 0
         self.level = 0.0
 
 
     def send_message(self, event):
-        # global sendMsgCount
+        global sendMsgCount
         for neighbor in self.neighbors:
-            # sendMsgCount += 1
+            sendMsgCount += 1
             neighbor.receive_message(event)
          
 
@@ -100,6 +103,7 @@ class Streetlight:
         # Example function to simulate interaction with neighbors
         for neighbor in self.neighbors:
             print(f"{self.env.now}: {self.name} checks in with {neighbor.name}")
+
 
     def add_neighbor(self, neighbor):
         self.neighbors.append(neighbor)
@@ -215,22 +219,31 @@ def main() -> int:
     # Find connected lamps
     find_connected_lamps(streetlights, G)
 
-    
+
+
+
+
+
     # After creating the graph G
     pos = nx.get_node_attributes(G, 'pos')
 
     logger.info("Starting simulation...")
     n_messages_received: int = 0
-    try:
-        while True:
-            message = subscriber.recv() #We only recieve messages that observed movement
-            # message = {'streetlamps': [11046617406, 2, 3]}
-            # data = message['streetlamps']
-            # print("Message = ", message)
-        
-            n_messages_received += 1
-            data = cbor2.loads(message[len("streetlamps"):]) 
+    cost = []
+    with open('data.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["delta_time", "count_on", "count_off"])
+        try:
+            while True:
+                message = subscriber.recv() #We only recieve messages that observed movement
+                # message = {'streetlamps': [11046617406, 2, 3]}
+                # data = message['streetlamps']
+                # print("Message = ", message)
+            
+                n_messages_received += 1
+                data = cbor2.loads(message[len("streetlamps"):]) 
 
+<<<<<<< Updated upstream
             logger.info(f"Received message #{n_messages_received}: {data['timestamp'] = } {len(data['streetlamps']) = }")
             # data is a list of names of streetlights 
             dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
@@ -266,6 +279,47 @@ def main() -> int:
         zmq_context.term()
         logger.info("ZeroMQ connection closed!")
 
+=======
+                # logger.info(f"Received message #{n_messages_received}: {data}")
+                # data is a list of names of streetlights 
+                dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
+                for streetlight in streetlights:
+                    event = {
+                            "date": datetime.datetime.fromtimestamp(data['timestamp']),
+                            "sunset_time": t(19, 30),
+                            "sunrise_time": t(6, 30),
+                            "lux_number": 245.5, 
+                            "season": "Summer" }
+                    if streetlight.name in data['streetlamps']:
+                        event["sensor_input"] = True
+                    else:
+                        event["sensor_input"] = False
+                    
+                    streetlight.get_event(event)
+
+                    dictionary['changes'][streetlight.name] = streetlight.get_level()
+
+                # print('changes = ', dictionary)
+                data = cbor2.dumps(dictionary)
+                
+                publisher.send(bytes(pub_top, encoding='utf-8') + data)
+                
+                cost = calc_cost(dictionary['changes'], configuration["setup_values"]["delta_time"])
+                writer.writerow(cost)
+                # cost.append(calc_cost(dictionary['changes'], event['date']))
+                if (not n_messages_received % 1000):
+                    logger.info("Send changes, message number " + str(n_messages_received))
+
+
+        except KeyboardInterrupt:
+            print("Interrupted!")
+        finally:
+            subscriber.close()
+
+            context.term()
+
+    
+>>>>>>> Stashed changes
     # Draw the network
     pos = nx.get_node_attributes(G, 'pos')
     nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray')
