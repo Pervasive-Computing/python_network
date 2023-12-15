@@ -56,9 +56,9 @@ class Streetlight:
 
 
     def send_message(self, event):
-        global sendMsgCount
+        global send_msg_count
         for neighbor in self.neighbors:
-            sendMsgCount += 1
+            send_msg_count += 1
             neighbor.receive_message(event)
          
 
@@ -165,6 +165,7 @@ def main() -> int:
 
     # else:
     configuration_path = Path("config.toml")
+    
     if not configuration_path.exists():
         logger.error(f"Cannot find `{configuration_path}`!")
         return 1
@@ -177,10 +178,12 @@ def main() -> int:
             return 1
 
 
+
     pub_port = configuration["publisher"]["port"]
     host: str = "localhost"
-    addr: str = f"tcp://{host}:{pub_port}"
-    publisher.bind(addr)
+    # addr: str = f"tcp://{host}:{pub_port}"
+    # publisher.bind(addr)
+    publisher.bind(f"tcp://*:{pub_port}")
     pub_top = "light_level"
     logger.info("ZeroMQ publisher bound to {addr = } on topic {pub_top = }")
 
@@ -243,43 +246,6 @@ def main() -> int:
                 n_messages_received += 1
                 data = cbor2.loads(message[len("streetlamps"):]) 
 
-<<<<<<< Updated upstream
-            logger.info(f"Received message #{n_messages_received}: {data['timestamp'] = } {len(data['streetlamps']) = }")
-            # data is a list of names of streetlights 
-            dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
-            for streetlight in streetlights:
-                event = {
-                        "date": datetime.datetime.fromtimestamp(data['timestamp']),
-                        "sunset_time": t(19, 30),
-                        "sunrise_time": t(6, 30),
-                        "lux_number": 245.5, 
-                        "season": "Summer" }
-                if streetlight.name in data['streetlamps']:
-                    event["sensor_input"] = True
-                else:
-                    event["sensor_input"] = False
-                
-                # Only handle the event if the streetlight is on
-                # if event["sensor_input"]
-
-                streetlight.get_event(event)
-
-                dictionary['changes'][streetlight.name] = streetlight.get_level()
-
-            # print('changes = ', dictionary)
-            data = cbor2.dumps(dictionary)
-            publisher.send(bytes(pub_top, encoding='utf-8') + data)
-
-
-    except KeyboardInterrupt:
-        logger.warning("Interrupted!")
-    finally:
-        subscriber.close()
-        publisher.close()
-        zmq_context.term()
-        logger.info("ZeroMQ connection closed!")
-
-=======
                 # logger.info(f"Received message #{n_messages_received}: {data}")
                 # data is a list of names of streetlights 
                 dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
@@ -315,19 +281,18 @@ def main() -> int:
             print("Interrupted!")
         finally:
             subscriber.close()
-
-            context.term()
+            publisher.close()
+            # context.term()
 
     
->>>>>>> Stashed changes
     # Draw the network
-    pos = nx.get_node_attributes(G, 'pos')
-    nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray')
-    plt.title("Street Lamp Network (Subset)")
+    # pos = nx.get_node_attributes(G, 'pos')
+    # nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray')
+    # plt.title("Street Lamp Network (Subset)")
 
-    plot_street_lamps_map(street_lamps[:subset_size])
+    # plot_street_lamps_map(street_lamps[:subset_size])
 
-    plt.show()
+    # plt.show()
 
     global send_msg_count
     global receive_msg_count

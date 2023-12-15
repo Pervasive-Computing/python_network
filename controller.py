@@ -63,11 +63,6 @@ class lightController():
 
 
         if(not is_time_between(date.time(), sunset_time, sunrise_time)):
-<<<<<<< Updated upstream
-            logger.warning("Time is not bewteen sunset and sunrise. No light required")
-=======
->>>>>>> Stashed changes
-            # print("Time is not bewteen sunset and sunrise. No light required")
             return 0.0, 0
         
         #Early time logic
