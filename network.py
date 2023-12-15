@@ -17,14 +17,15 @@ import tomllib
 
 from street_lamp_extractor import extract_street_lamps
 
-sendMsgCount = 0
-receiveMsgCount = 0
-
 try:
     from rich import pretty, print
     pretty.install()
 except ImportError or ModuleNotFoundError:
     pass
+
+
+send_msg_count:int = 0
+receive_msg_count: int = 0
 
 """
 TODO:
@@ -59,8 +60,8 @@ class Streetlight:
          
 
     def receive_message(self, event):
-        global receiveMsgCount
-        receiveMsgCount += 1
+        global receive_msg_count
+        receive_msg_count += 1
        
         self.handle_event(event)
 
@@ -151,12 +152,12 @@ def find_connected_lamps(streetlights, G):
 
 
 
-def main(argc: int, argv: list[str]) -> int:
+def main() -> int:
 
     # ZeroMQ client connect
-    context = zmq.Context()
-    publisher  = context.socket(zmq.PUB)
-    subscriber = context.socket(zmq.SUB)
+    zmq_context = zmq.Context()
+    publisher  = zmq_context.socket(zmq.PUB)
+    subscriber = zmq_context.socket(zmq.SUB)
 
     # else:
     configuration_path = Path("config.toml")
@@ -172,32 +173,32 @@ def main(argc: int, argv: list[str]) -> int:
             return 1
 
 
-    
     pub_port = configuration["publisher"]["port"]
-    publisher.bind(f"tcp://*:{pub_port}")
+    host: str = "localhost"
+    addr: str = f"tcp://{host}:{pub_port}"
+    publisher.bind(addr)
     pub_top = "light_level"
-
+    logger.info("ZeroMQ publisher bound to {addr = } on topic {pub_top = }")
 
     sub_port = configuration["subscriber"]["port"]
-    
-    logger.info("Sub port = ", sub_port, " and pub port = ", pub_port)
-    subscriber.connect(f"tcp://localhost:{sub_port}")
-    subscriber.setsockopt(zmq.SUBSCRIBE, b"streetlamps")
-
+    addr: str = f"tcp://{host}:{sub_port}"
+    subscriber.connect(addr)
+    sub_top: bytes = b"streetlamps"
+    subscriber.setsockopt(zmq.SUBSCRIBE, sub_top)
+    logger.info("ZeroMQ subscriber connected to {addr = } on topic {sub_top = }")
 
     logger.info("Connected!")
     
 
     osm_file = "Maps/map.osm"
+    logger.info(f"Extracting street lamps from {osm_file}...")
     street_lamps = extract_street_lamps(osm_file)  # Assuming this function is defined elsewhere
-    
+    logger.info(f"Found {len(street_lamps)} street lamps!")
 
     # Create the SimPy environment
     env = simpy.Environment()
     print(f"{env.now = }")
-    # print(env.datetime)
-    
-    
+        
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
     streetlights = [Streetlight(env, int(ids), lat, lon, configuration["setup_values"]["timeout_time"]) for i, (ids, lat, lon) in enumerate(street_lamps)]
@@ -230,7 +231,7 @@ def main(argc: int, argv: list[str]) -> int:
             n_messages_received += 1
             data = cbor2.loads(message[len("streetlamps"):]) 
 
-            logger.info(f"Received message #{n_messages_received}: {data}")
+            logger.info(f"Received message #{n_messages_received}: {data['timestamp'] = } {len(data['streetlamps']) = }")
             # data is a list of names of streetlights 
             dictionary = {'timestamp' : data['timestamp'], 'changes': {}}
             for streetlight in streetlights:
@@ -245,6 +246,9 @@ def main(argc: int, argv: list[str]) -> int:
                 else:
                     event["sensor_input"] = False
                 
+                # Only handle the event if the streetlight is on
+                # if event["sensor_input"]
+
                 streetlight.get_event(event)
 
                 dictionary['changes'][streetlight.name] = streetlight.get_level()
@@ -255,13 +259,13 @@ def main(argc: int, argv: list[str]) -> int:
 
 
     except KeyboardInterrupt:
-        print("Interrupted!")
+        logger.warning("Interrupted!")
     finally:
         subscriber.close()
+        publisher.close()
+        zmq_context.term()
+        logger.info("ZeroMQ connection closed!")
 
-        context.term()
-
-    
     # Draw the network
     pos = nx.get_node_attributes(G, 'pos')
     nx.draw(G, pos, with_labels=True, node_color='lightblue', edge_color='gray')
@@ -271,10 +275,10 @@ def main(argc: int, argv: list[str]) -> int:
 
     plt.show()
 
-    global sendMsgCount
-    global receiveMsgCount
+    global send_msg_count
+    global receive_msg_count
 
-    logger.info(f"{sendMsgCount = }, {receiveMsgCount = }")
+    logger.info(f"{send_msg_count = }, {receive_msg_count = }")
 
 if __name__ == "__main__":
-    sys.exit(main(len(sys.argv), sys.argv))
+    sys.exit(main())

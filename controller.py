@@ -1,5 +1,6 @@
 import datetime
 from datetime import time as t
+from loguru import logger
 
 #define a python function that takes a certain JSON form as input, {'date': int}:
 def is_time_between(target, time_start, time_end):
@@ -66,7 +67,8 @@ class lightController():
 
 
         if(not is_time_between(date.time(), sunset_time, sunrise_time)):
-            print("Time is not bewteen sunset and sunrise. No light required")
+            logger.warning("Time is not bewteen sunset and sunrise. No light required")
+            # print("Time is not bewteen sunset and sunrise. No light required")
             return 0.0, 0
         
         #Early time logic
