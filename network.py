@@ -43,7 +43,7 @@ TODO:
 """
 
 class Streetlight:
-    def __init__(self, env, name, lat, lon, timeout_time=10):
+    def __init__(self, env, name, lat, lon, timeout_time=10, recheck_time = 10):
         self.env = env
         self.name = name
         self.lat = lat
@@ -53,14 +53,17 @@ class Streetlight:
         self.controller = lightController(timeout_time, False)
         self.last_change = 0
         self.level = 0.0
+        self.recheck_time = recheck_time
 
 
     def send_message(self, event):
-        global send_msg_count
-        for neighbor in self.neighbors:
-            send_msg_count += 1
-            neighbor.receive_message(event)
-         
+        
+        if(self.last_change < self.recheck_time):
+            global send_msg_count
+            for neighbor in self.neighbors:
+                send_msg_count += 1
+                neighbor.receive_message(event)
+            
 
     def receive_message(self, event):
         global receive_msg_count
