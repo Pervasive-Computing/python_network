@@ -43,7 +43,7 @@ TODO:
 """
 
 class Streetlight:
-    def __init__(self, env, name, lat, lon, timeout_time=10, recheck_time = 10):
+    def __init__(self, env, name, lat, lon, timeout_time=10, threshold = 10):
         self.env = env
         self.name = name
         self.lat = lat
@@ -53,12 +53,12 @@ class Streetlight:
         self.controller = lightController(timeout_time, False)
         self.last_change = 0
         self.level = 0.0
-        self.recheck_time = recheck_time
+        self.threshold = threshold
 
 
     def send_message(self, event):
         
-        if(self.last_change < self.recheck_time):
+        if(self.last_change < self.threshold):
             global send_msg_count
             for neighbor in self.neighbors:
                 send_msg_count += 1
@@ -86,12 +86,13 @@ class Streetlight:
     def handle_event(self, event):
         """
         event = {
-                        "date": datetime.datetime(2023, 11, 3, 1, 20), 
-                        "sunset_time": t(19, 30),
-                        "sunrise_time": t(6, 30),
-                        "lux_number": 245.5, 
-                        "sensor_input": True, 
-                        "season": "Summer" }
+                        {'date': datetime.datetime, 
+                        'sunset_time': t,
+                        'sunrise_time': t,
+                        'lux_number': float,
+                        'current_level': float,
+                        'sensor_input': bool,
+                        }
         """
         event['current_level'] = self.level
         level, time_change = self.controller.control(event, self.last_change)
@@ -211,7 +212,7 @@ def main() -> int:
         
     # Create streetlight nodes (selecting a subset, e.g., first 50 street lamps)
     subset_size = 25  # Adjust this number as needed
-    streetlights = [Streetlight(env, int(ids), lat, lon, configuration["setup_values"]["timeout_time"]) for i, (ids, lat, lon) in enumerate(street_lamps)]
+    streetlights = [Streetlight(env, int(ids), lat, lon, configuration["setup_values"]["timeout_time"], configuration["setup_values"]["threshold"]) for i, (ids, lat, lon) in enumerate(street_lamps)]
     # print("Streetlights = ", streetlights)
     # Create a network graph
     G = nx.Graph()

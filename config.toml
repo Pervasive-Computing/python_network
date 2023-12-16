@@ -8,6 +8,6 @@ port = 12000
 
 [setup_values]
 timeout_time = 100
-recheck_time = 10
+threshold = 10
 delta_time = 0.01
 early_evening_logic = false
