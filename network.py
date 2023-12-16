@@ -248,6 +248,7 @@ def main() -> int:
             
                 n_messages_received += 1
                 data = cbor2.loads(message[len("streetlamps"):]) 
+                # print(data)
 
                 # logger.info(f"Received message #{n_messages_received}: {data}")
                 # data is a list of names of streetlights 
@@ -263,11 +264,10 @@ def main() -> int:
                         event["sensor_input"] = True
                     else:
                         event["sensor_input"] = False
-                    
                     streetlight.get_event(event)
 
                     dictionary['changes'][streetlight.name] = streetlight.get_level()
-
+                
                 # print('changes = ', dictionary)
                 data = cbor2.dumps(dictionary)
                 
